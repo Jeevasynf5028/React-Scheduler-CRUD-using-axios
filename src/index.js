@@ -17,47 +17,43 @@ import {
 } from '@syncfusion/ej2-react-schedule';
 import { SampleBase } from './sample-base';
 import axios from 'axios';
+import dataSource from './datasource.json';
 /**
  * Schedule Default sample
  */
 export class Default extends SampleBase {
   constructor() {
     super(...arguments);
-    this.flag = true;
+    this.data = dataSource.scheduleData;
   }
 
   onBound(args) {
-    if (this.flag) {
-      axios.get('http://localhost:54738/Home/GetData').then(response => {
-        var schObj = document.querySelector('.e-schedule').ej2_instances[0];
-        schObj.eventSettings.dataSource = response.data;
-      });
-      this.flag = false;
-    }
+    // Data is already loaded from local datasource.json
   }
 
   onBegin(args) {
     if (args.requestType === 'eventCreate') {
-      axios
-        .post('http://localhost:54738/Home/Insert', args.data[0])
-        .then(response => {
-          var schObj = document.querySelector('.e-schedule').ej2_instances[0];
-          schObj.eventSettings.dataSource = response.data;
-        });
+      // Handle local data creation
+      const newEvent = args.data[0];
+      newEvent.Id = this.data.length + 1;
+      this.data.push(newEvent);
+      var schObj = document.querySelector('.e-schedule').ej2_instances[0];
+      schObj.eventSettings.dataSource = [...this.data];
     } else if (args.requestType === 'eventChange') {
-      axios
-        .post('http://localhost:54738/Home/Update', args.data)
-        .then(response => {
-          var schObj = document.querySelector('.e-schedule').ej2_instances[0];
-          schObj.eventSettings.dataSource = response.data;
-        });
+      // Handle local data update
+      const updatedEvent = args.data;
+      const index = this.data.findIndex(event => event.Id === updatedEvent.Id);
+      if (index !== -1) {
+        this.data[index] = updatedEvent;
+      }
+      var schObj = document.querySelector('.e-schedule').ej2_instances[0];
+      schObj.eventSettings.dataSource = [...this.data];
     } else if (args.requestType === 'eventRemove') {
-      axios
-        .post('http://localhost:54738/Home/Delete', args.data[0])
-        .then(response => {
-          var schObj = document.querySelector('.e-schedule').ej2_instances[0];
-          schObj.eventSettings.dataSource = response.data;
-        });
+      // Handle local data deletion
+      const deletedEvent = args.data[0];
+      this.data = this.data.filter(event => event.Id !== deletedEvent.Id);
+      var schObj = document.querySelector('.e-schedule').ej2_instances[0];
+      schObj.eventSettings.dataSource = [...this.data];
     }
   }
   render() {
@@ -70,6 +66,7 @@ export class Default extends SampleBase {
               ref={schedule => (this.scheduleObj = schedule)}
               currentView="Month"
               selectedDate={new Date(2020, 5, 10)}
+              eventSettings={{ dataSource: this.data }}
               dataBound={this.onBound.bind(this)}
               actionBegin={this.onBegin.bind(this)}
             >
